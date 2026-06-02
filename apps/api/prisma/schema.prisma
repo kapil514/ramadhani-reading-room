@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum LeadStatus {
+  NOT_INTERESTED
+  FOLLOW_UP
+  JOINED
+}
+
+enum StudentStatus {
+  ACTIVE
+  EXPIRED
+  PAUSED
+  LEFT
+}
+
+enum PaymentStatus {
+  PAID
+  PARTIAL
+  PENDING
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  CARD
+  BANK_TRANSFER
+  CHEQUE
+}
+
+enum CabinStatus {
+  VACANT
+  OCCUPIED
+  EXPIRING_SOON
+  INACTIVE
+}
+
+enum CabinType {
+  STANDARD
+  PREMIUM
+  AC
+}
+
+enum LockerStatus {
+  VACANT
+  OCCUPIED
+}
+
+enum GovtIdType {
+  AADHAAR
+  PAN
+  DRIVING_LICENCE
+  PASSPORT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+model User {
+  id                   String    @id @default(uuid())
+  name                 String
+  email                String    @unique
+  passwordHash         String
+  role                 Role      @default(STAFF)
+  isActive             Boolean   @default(true)
+  failedLoginAttempts  Int       @default(0)
+  lockedUntil          DateTime?
+  lastLoginAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Enquiry {
+  id                String     @id @default(uuid())
+  name              String
+  phone             String
+  email             String?
+  course            String
+  enquiryDate       DateTime   @default(now())
+  leadStatus        LeadStatus @default(FOLLOW_UP)
+  lastFollowupDate  DateTime?
+  notes             String?
+  convertedStudentId String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  convertedStudent  Student?   @relation(fields: [convertedStudentId], references: [id])
+
+  @@map("enquiries")
+}
+
+model Student {
+  id              String        @id @default(uuid())
+  studentCode     String        @unique
+  name            String
+  gender          Gender?
+  phone           String        @unique
+  alternatePhone  String?
+  email           String?
+  dob             DateTime?
+  address         String?
+  photoUrl        String?
+  govtIdType      GovtIdType?
+  govtIdNumber    String?
+  govtIdUrl       String?
+  course          String?
+  institution     String?
+  studyLevel      String?
+  studyHoursPerDay String?
+  preferredStudyTime String?
+  referralSource  String?
+  fingerprintId   String?
+  status          StudentStatus @default(ACTIVE)
+  enquiryId       String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  enquiries     Enquiry[]
+  memberships   Membership[]
+  lockers       Locker[]
+  payments      Payment[]
+
+  @@map("students")
+}
+
+model Membership {
+  id            String        @id @default(uuid())
+  studentId     String
+  startDate     DateTime
+  endDate       DateTime
+  cabinId       String?
+  lockerId      String?
+  paymentStatus PaymentStatus @default(PENDING)
+  amountDue     Decimal?      @db.Decimal(10, 2)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  student       Student       @relation(fields: [studentId], references: [id])
+  cabin         Cabin?        @relation(fields: [cabinId], references: [id])
+  locker        Locker?       @relation(fields: [lockerId], references: [id])
+  payments      Payment[]
+
+  @@map("memberships")
+}
+
+model Cabin {
+  id                  String      @id @default(uuid())
+  cabinNo             String      @unique
+  roomName            String      @default("")
+  category            String      @default("RRR 1.0")
+  cabinType           CabinType   @default(STANDARD)
+  status              CabinStatus @default(VACANT)
+  currentMembershipId String?
+  monthlyPrice        Decimal?    @db.Decimal(10, 2)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  memberships         Membership[]
+
+  @@map("cabins")
+}
+
+model Locker {
+  id               String       @id @default(uuid())
+  lockerNo         String       @unique
+  area             String       @default("")
+  status           LockerStatus @default(VACANT)
+  currentStudentId String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  currentStudent   Student?     @relation(fields: [currentStudentId], references: [id])
+  memberships      Membership[]
+
+  @@map("lockers")
+}
+
+model Payment {
+  id            String      @id @default(uuid())
+  membershipId  String
+  studentId     String
+  amount        Decimal     @db.Decimal(10, 2)
+  paidAt        DateTime    @default(now())
+  paymentMode   PaymentMode @default(CASH)
+  txnReference  String?
+  invoiceNumber String      @unique
+  invoiceUrl    String?
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  membership    Membership  @relation(fields: [membershipId], references: [id])
+  student       Student     @relation(fields: [studentId], references: [id])
+
+  @@map("payments")
+}

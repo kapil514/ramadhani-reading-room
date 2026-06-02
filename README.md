@@ -101,4 +101,3 @@ apps/
     src/lib/        → api.ts, utils.ts
     src/types/      → index.ts (shared TypeScript interfaces)
 ```
-# ramadhani-reading-room
