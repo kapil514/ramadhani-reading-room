@@ -7,10 +7,10 @@
       "config": { "includeFiles": ["prisma/**"] }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "src/index.ts"
+      "source": "/(.*)",
+      "destination": "src/index.ts"
     }
   ]
 }
